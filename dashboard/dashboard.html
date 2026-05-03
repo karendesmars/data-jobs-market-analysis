@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Science Job Market Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --ink: #1a1a18;
+    --ink-light: #4a4a44;
+    --bg: #faf8f4;
+    --bg-card: #f3f0ea;
+    --rule: #d8d4cc;
+    --orange: #c45a28;
+    --green: #2a7a5a;
+    --blue: #2a508c;
+    --amber: #c89000;
+    --mono: 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.65;
+    background: var(--bg);
+    color: var(--ink);
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+  }
+
+  /* Header */
+  .report-header { border-top: 3px solid var(--ink); padding-top: 1.5rem; margin-bottom: 2.5rem; }
+  .report-header h1 { font-size: 2.2rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  .report-header .subtitle { font-size: 1rem; color: var(--ink-light); font-family: var(--mono); margin-top: 0.4rem; }
+  .report-header .meta { font-size: 0.8rem; color: var(--ink-light); font-family: var(--mono); margin-top: 0.6rem; border-top: 1px solid var(--rule); padding-top: 0.6rem; }
+
+  /* KPI strip */
+  .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 3rem; }
+  .kpi-card { background: var(--bg-card); padding: 1rem 1.2rem; border-left: 3px solid var(--orange); }
+  .kpi-card .kpi-value { font-family: var(--mono); font-size: 1.8rem; font-weight: bold; color: var(--orange); line-height: 1; }
+  .kpi-card .kpi-label { font-size: 0.82rem; color: var(--ink-light); margin-top: 0.3rem; }
+
+  /* Sections */
+  .section { margin-bottom: 4rem; }
+  .section h2 { font-size: 1.3rem; font-weight: 600; border-bottom: 1px solid var(--rule); padding-bottom: 0.4rem; margin-bottom: 0.5rem; }
+  .state-line { font-style: italic; color: var(--ink-light); margin-bottom: 1.5rem; font-size: 0.97rem; }
+
+  /* Aside layout */
+  .aside-container { display: grid; grid-template-columns: 3fr 2fr; gap: 2rem; align-items: start; margin-bottom: 2rem; }
+  .aside-container.reverse { grid-template-columns: 2fr 3fr; }
+  .aside-narrative { font-size: 0.94rem; line-height: 1.7; }
+  .aside-narrative p { margin-bottom: 0.8rem; }
+  .aside-narrative strong { color: var(--ink); }
+
+  /* Charts */
+  .chart-wrap { position: relative; }
+  .chart-caption { font-size: 0.78rem; font-family: var(--mono); color: var(--ink-light); margin-top: 0.5rem; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  th { font-family: var(--mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-light); border-bottom: 2px solid var(--rule); padding: 0.4rem 0.6rem; text-align: left; }
+  td { font-family: var(--mono); padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--rule); }
+  tr:last-child td { border-bottom: none; }
+  td.highlight { color: var(--orange); font-weight: bold; }
+
+  /* Ornament */
+  .ornament { text-align: center; color: var(--rule); font-family: var(--mono); margin: 2rem 0; letter-spacing: 0.3em; }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--rule); padding-top: 1rem; font-size: 0.8rem; font-family: var(--mono); color: var(--ink-light); }
+
+  @media (max-width: 680px) {
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .aside-container, .aside-container.reverse { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="report-header">
+  <h1>Data Science Job Market Analysis</h1>
+  <div class="subtitle">607 records · Kaggle ds_salaries dataset · 2020–2022</div>
+  <div class="meta">Analyzed with DuckDB · SQL window functions, CTEs, aggregations</div>
+</header>
+
+<!-- KPI Strip -->
+<div class="kpi-strip">
+  <div class="kpi-card">
+    <div class="kpi-value">607</div>
+    <div class="kpi-label">Job records analyzed</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">$112K</div>
+    <div class="kpi-label">Global average salary (USD)</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">63%</div>
+    <div class="kpi-label">Fully remote roles</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">+30%</div>
+    <div class="kpi-label">Salary growth 2020→2022</div>
+  </div>
+</div>
+
+<!-- Section 1: Experience Level -->
+<section class="section">
+  <h2>1 — Salary by Experience Level</h2>
+  <p class="state-line">The jump from Mid-level to Senior represents the largest relative increase at 36.5%, while Senior roles account for 46% of all positions.</p>
+  <div class="aside-container">
+    <div class="chart-wrap">
+      <canvas id="chartExp" height="220"></canvas>
+      <div class="chart-caption">Average salary in USD by experience level. Bar width reflects relative job count.</div>
+    </div>
+    <div class="aside-narrative">
+      <p><strong>Executive ceiling.</strong> EX roles average USD 199K but represent only 4% of the dataset (26 jobs), making this tier statistically thin.</p>
+      <p><strong>Senior is the market.</strong> SE roles dominate at 46% of all jobs (280 positions) with a USD 138K average — the most liquid tier for career transitions.</p>
+      <p><strong>Entry scarcity.</strong> EN roles represent 14% of the dataset, suggesting the market skews toward experienced professionals.</p>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>Level</th><th>Jobs</th><th>Share</th><th>Avg Salary</th><th>Jump vs Below</th></tr></thead>
+    <tbody>
+      <tr><td>Executive</td><td>26</td><td>4%</td><td class="highlight">$199,392</td><td>+$60,775 (+44%)</td></tr>
+      <tr><td>Senior</td><td>280</td><td>46%</td><td class="highlight">$138,617</td><td>+$50,621 (+37%)</td></tr>
+      <tr><td>Mid-level</td><td>213</td><td>35%</td><td class="highlight">$87,996</td><td>+$26,353 (+30%)</td></tr>
+      <tr><td>Entry</td><td>88</td><td>14%</td><td class="highlight">$61,643</td><td>—</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="ornament">:::</div>
+
+<!-- Section 2: Top Job Titles -->
+<section class="section">
+  <h2>2 — Top 10 Highest-Paid Job Titles</h2>
+  <p class="state-line">Specialist and principal-level titles dominate, ranging from USD 123K to USD 215K. Titles with fewer than 5 data points were excluded.</p>
+  <div class="chart-wrap" style="margin-bottom: 1.5rem;">
+    <canvas id="chartTitles" height="300"></canvas>
+    <div class="chart-caption">Average salary in USD. Only titles with ≥5 records included to ensure statistical reliability.</div>
+  </div>
+  <div class="aside-container reverse">
+    <div class="aside-narrative">
+      <p><strong>Specialist premium.</strong> Principal Data Scientist (USD 215K) and Director of Data Science (USD 195K) lead the ranking — both require deep domain expertise beyond standard data roles.</p>
+      <p><strong>Management follows.</strong> Data Science Manager (USD 158K) and Lead Data Engineer (USD 140K) occupy the mid-range, reflecting the leadership premium over individual contributors.</p>
+    </div>
+    <table>
+      <thead><tr><th>Title</th><th>Jobs</th><th>Avg USD</th></tr></thead>
+      <tbody>
+        <tr><td>Principal Data Scientist</td><td>7</td><td class="highlight">$215,242</td></tr>
+        <tr><td>Director of Data Science</td><td>7</td><td class="highlight">$195,074</td></tr>
+        <tr><td>Data Architect</td><td>11</td><td class="highlight">$177,874</td></tr>
+        <tr><td>Applied Data Scientist</td><td>5</td><td>$175,655</td></tr>
+        <tr><td>Head of Data</td><td>5</td><td>$160,163</td></tr>
+        <tr><td>ML Scientist</td><td>8</td><td>$158,413</td></tr>
+        <tr><td>DS Manager</td><td>12</td><td>$158,329</td></tr>
+        <tr><td>Lead Data Engineer</td><td>6</td><td>$139,725</td></tr>
+        <tr><td>DA Manager</td><td>7</td><td>$127,134</td></tr>
+        <tr><td>DE Manager</td><td>5</td><td>$123,227</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="ornament">:::</div>
+
+<!-- Section 3: YoY Growth -->
+<section class="section">
+  <h2>3 — Salary Growth 2020–2022</h2>
+  <p class="state-line">Salaries grew 4% in 2021 then accelerated sharply to +20% in 2022, reflecting the post-pandemic surge in data talent demand.</p>
+  <div class="aside-container">
+    <div class="chart-wrap">
+      <canvas id="chartYoy" height="220"></canvas>
+      <div class="chart-caption">Average salary in USD per year. Job count shown as secondary reference.</div>
+    </div>
+    <div class="aside-narrative">
+      <p><strong>2022 inflection.</strong> The +20% jump from 2021 to 2022 is the sharpest growth in the dataset, coinciding with peak tech hiring demand.</p>
+      <p><strong>Volume effect.</strong> Job records more than quadrupled from 72 (2020) to 318 (2022), suggesting broader dataset coverage and market expansion.</p>
+      <p><strong>Dataset limit.</strong> The analysis covers 2020–2022 only. The 2023 market correction following tech layoffs is not represented.</p>
+    </div>
+  </div>
+</section>
+
+<div class="ornament">:::</div>
+
+<!-- Section 4: Remote Work -->
+<section class="section">
+  <h2>4 — Remote Work Patterns</h2>
+  <p class="state-line">Fully remote roles dominate at 63% and command the highest average salary at USD 122K — USD 16K above on-site equivalents.</p>
+  <div class="aside-container">
+    <div class="chart-wrap">
+      <canvas id="chartRemote" height="180"></canvas>
+      <div class="chart-caption">Job share and average salary by remote work type.</div>
+    </div>
+    <div class="aside-narrative">
+      <p><strong>Remote premium.</strong> Fully remote roles average USD 122K vs USD 106K for on-site — a 15% premium. This may reflect a seniority confound: senior roles are both better paid and more likely to be remote.</p>
+      <p><strong>Hybrid underperforms.</strong> Hybrid roles average USD 81K, 28% below on-site — possibly reflecting a different role mix rather than a hybrid penalty per se.</p>
+    </div>
+  </div>
+</section>
+
+<div class="ornament">:::</div>
+
+<!-- Section 5: Geography -->
+<section class="section">
+  <h2>5 — Geographic Distribution</h2>
+  <p class="state-line">The US accounts for 67% of all records and leads on compensation at USD 144K average — 26% above Japan, the second highest-paying market.</p>
+  <div class="chart-wrap" style="margin-bottom: 1.5rem;">
+    <canvas id="chartGeo" height="260"></canvas>
+    <div class="chart-caption">Average salary in USD by company location. Only countries with ≥5 records shown.</div>
+  </div>
+  <div class="aside-container reverse">
+    <div class="aside-narrative">
+      <p><strong>US concentration.</strong> With 355 of 607 records, conclusions about non-US markets should be treated with caution — most countries have fewer than 30 data points.</p>
+      <p><strong>Regional disparity.</strong> European salaries range from USD 52K (Greece) to USD 81K (Germany), while India ranks last at USD 29K — reflecting local purchasing power rather than skill gaps.</p>
+    </div>
+    <table>
+      <thead><tr><th>Country</th><th>Jobs</th><th>Share</th><th>Avg USD</th></tr></thead>
+      <tbody>
+        <tr><td>US</td><td>355</td><td>67%</td><td class="highlight">$144,055</td></tr>
+        <tr><td>JP</td><td>6</td><td>1%</td><td>$114,127</td></tr>
+        <tr><td>CA</td><td>30</td><td>6%</td><td>$99,824</td></tr>
+        <tr><td>DE</td><td>28</td><td>5%</td><td>$81,887</td></tr>
+        <tr><td>GB</td><td>47</td><td>9%</td><td>$81,583</td></tr>
+        <tr><td>FR</td><td>15</td><td>3%</td><td>$63,971</td></tr>
+        <tr><td>ES</td><td>14</td><td>3%</td><td>$53,060</td></tr>
+        <tr><td>GR</td><td>11</td><td>2%</td><td>$52,293</td></tr>
+        <tr><td>IN</td><td>24</td><td>5%</td><td>$28,582</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>Data: ds_salaries.csv · Kaggle · 2020–2022 · 607 records · Self-reported salaries · US-biased (67% of records)</p>
+  <p style="margin-top:0.3rem;">Analysis: DuckDB SQL · Window functions · CTEs · Aggregations</p>
+</footer>
+
+<script>
+// Shared defaults
+Chart.defaults.font.family = "'EB Garamond', Georgia, serif";
+Chart.defaults.color = '#4a4a44';
+
+const orange = '#c45a28';
+const green = '#2a7a5a';
+const blue = '#2a508c';
+const amber = '#c89000';
+const rule = '#d8d4cc';
+
+// 1. Salary by Experience Level
+new Chart(document.getElementById('chartExp'), {
+  type: 'bar',
+  data: {
+    labels: ['Entry', 'Mid-level', 'Senior', 'Executive'],
+    datasets: [{
+      label: 'Avg Salary (USD)',
+      data: [61643, 87996, 138617, 199392],
+      backgroundColor: [
+        'rgba(196,90,40,0.25)',
+        'rgba(196,90,40,0.45)',
+        'rgba(196,90,40,0.75)',
+        'rgba(196,90,40,1.0)'
+      ],
+      borderColor: orange,
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ' $' + ctx.parsed.y.toLocaleString()
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: rule },
+        ticks: {
+          callback: v => '$' + (v/1000) + 'K'
+        }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 2. Top Job Titles
+new Chart(document.getElementById('chartTitles'), {
+  type: 'bar',
+  data: {
+    labels: [
+      'DE Manager','DA Manager','Lead Data Eng.','DS Manager',
+      'ML Scientist','Head of Data','Applied DS',
+      'Data Architect','Dir. Data Science','Principal DS'
+    ],
+    datasets: [{
+      label: 'Avg Salary (USD)',
+      data: [123227,127134,139725,158329,158413,160163,175655,177874,195074,215242],
+      backgroundColor: orange,
+      borderWidth: 0
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ' $' + ctx.parsed.x.toLocaleString()
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: rule },
+        ticks: { callback: v => '$' + (v/1000) + 'K' }
+      },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// 3. YoY Salary Growth
+new Chart(document.getElementById('chartYoy'), {
+  type: 'line',
+  data: {
+    labels: ['2020', '2021', '2022'],
+    datasets: [
+      {
+        label: 'Avg Salary (USD)',
+        data: [95813, 99854, 124522],
+        borderColor: orange,
+        backgroundColor: 'rgba(196,90,40,0.08)',
+        borderWidth: 2.5,
+        pointRadius: 5,
+        pointBackgroundColor: orange,
+        fill: true,
+        tension: 0.3,
+        yAxisID: 'y'
+      },
+      {
+        label: 'Job Count',
+        data: [72, 217, 318],
+        borderColor: blue,
+        borderWidth: 1.5,
+        borderDash: [4,3],
+        pointRadius: 4,
+        pointBackgroundColor: blue,
+        fill: false,
+        tension: 0.3,
+        yAxisID: 'y2'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: true,
+        labels: { boxWidth: 12, boxHeight: 12, padding: 16 }
+      }
+    },
+    scales: {
+      y: {
+        position: 'left',
+        grid: { color: rule },
+        ticks: { callback: v => '$' + (v/1000) + 'K' }
+      },
+      y2: {
+        position: 'right',
+        grid: { display: false },
+        ticks: { color: blue }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 4. Remote Work
+new Chart(document.getElementById('chartRemote'), {
+  type: 'bar',
+  data: {
+    labels: ['Fully Remote', 'On-Site', 'Hybrid'],
+    datasets: [
+      {
+        label: 'Job Share (%)',
+        data: [63, 21, 16],
+        backgroundColor: [
+          'rgba(196,90,40,0.8)',
+          'rgba(42,80,140,0.6)',
+          'rgba(200,144,0,0.6)'
+        ],
+        borderWidth: 0,
+        yAxisID: 'y'
+      },
+      {
+        label: 'Avg Salary (USD)',
+        data: [122457, 106355, 80823],
+        type: 'line',
+        borderColor: green,
+        borderWidth: 2,
+        pointRadius: 5,
+        pointBackgroundColor: green,
+        fill: false,
+        yAxisID: 'y2'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: true,
+        labels: { boxWidth: 12, boxHeight: 12, padding: 16 }
+      }
+    },
+    scales: {
+      y: {
+        grid: { color: rule },
+        ticks: { callback: v => v + '%' }
+      },
+      y2: {
+        position: 'right',
+        grid: { display: false },
+        ticks: { callback: v => '$' + (v/1000) + 'K', color: green }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 5. Geographic Distribution
+new Chart(document.getElementById('chartGeo'), {
+  type: 'bar',
+  data: {
+    labels: ['US','JP','CA','DE','GB','FR','ES','GR','IN'],
+    datasets: [
+      {
+        label: 'Avg Salary (USD)',
+        data: [144055,114127,99824,81887,81583,63971,53060,52293,28582],
+        backgroundColor: labels => {
+          return labels.dataIndex === 0 ? orange : 'rgba(196,90,40,0.4)';
+        },
+        borderWidth: 0,
+        order: 1,
+        yAxisID: 'y'
+      },
+      {
+        label: 'Job Count',
+        data: [355,6,30,28,47,15,14,11,24],
+        type: 'line',
+        borderColor: blue,
+        borderWidth: 1.5,
+        borderDash: [4,3],
+        pointRadius: 5,
+        pointBackgroundColor: blue,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 1.5,
+        fill: false,
+        order: 0,
+        yAxisID: 'y2'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: true,
+        labels: { boxWidth: 12, boxHeight: 12, padding: 16 }
+      }
+    },
+    scales: {
+      y: {
+        grid: { color: rule },
+        ticks: { callback: v => '$' + (v/1000) + 'K' }
+      },
+      y2: {
+        position: 'right',
+        grid: { display: false },
+        max: 450,
+        ticks: { color: blue }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+</script>
+
+</body>
+</html>
